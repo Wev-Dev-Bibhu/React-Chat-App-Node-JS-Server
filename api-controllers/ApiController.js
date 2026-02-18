@@ -4,7 +4,7 @@ const db = require("../helper-files/db-conn");
 const jwt = require("jsonwebtoken");
 const data = {};
 
-const { USERS_CHECK_EXISTING_EMAIL_QUERY, USERS_INSERT_QUERY, FETCH_ALL_USERS_QUERY, INSERT_USER_MESSAGE_QUERY, FETCH_USER_QUERY, FETCH_USER_MESSAGE_QUERY, UPDATE_USER_INFO_QUERY, USERS_CHECK_EXISTING_EMAIL_WITH_ID_QUERY } = require("../helper-files/db-query");
+const { USERS_CHECK_EXISTING_EMAIL_QUERY, USERS_INSERT_QUERY, FETCH_ALL_USERS_QUERY, INSERT_USER_MESSAGE_QUERY, FETCH_USER_QUERY, FETCH_USER_MESSAGE_QUERY, UPDATE_USER_INFO_QUERY, USERS_CHECK_EXISTING_EMAIL_WITH_ID_QUERY, LOGOUT_USER_QUERY } = require("../helper-files/db-query");
 
 const SignUpController = async (req, res) => {
     const { email, password, fullname } = req.body;
@@ -25,7 +25,7 @@ const SignUpController = async (req, res) => {
             USERS_INSERT_QUERY,
             [fullname, email, hashedPassword]
         ).then((row) => {
-            data["userData"] = existingUser.rows[0];
+            data["userData"] = row.rows[0];
 
             data["token"] = jwt.sign(
                 { userId: row.rows[0].id },
@@ -74,6 +74,27 @@ const SignInController = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Internal server error", status: "error" });
+    }
+}
+
+const LogoutController = async (req, res) => {
+    try {
+        const { userID } = req.body;
+
+        if (!userID) {
+            return res.status(400).json({ message: "UserID is required", status: "error" });
+        }
+        const logoutUser = await db.query(LOGOUT_USER_QUERY, [userID]);
+
+        if (logoutUser.rowCount === 0) {
+            return res.status(404).json({ message: "No Users Found", status: "error" });
+        }
+
+        return api(res, "User Logged Out");
+
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        return res.status(500).json({ message: "Internal server error", status: "error" });
     }
 }
 
@@ -166,6 +187,7 @@ const UpdateUserInfo = async (req, res) => {
 module.exports = {
     SignUpController,
     SignInController,
+    LogoutController,
     FetchAllUsers,
     FetchUserMessage,
     InsertUserMessage,
