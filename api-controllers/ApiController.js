@@ -4,7 +4,7 @@ const db = require("../helper-files/db-conn");
 const jwt = require("jsonwebtoken");
 const data = {};
 
-const { USERS_CHECK_EXISTING_EMAIL_QUERY, USERS_INSERT_QUERY, FETCH_ALL_USERS_QUERY, INSERT_USER_MESSAGE_QUERY, FETCH_USER_QUERY, FETCH_USER_MESSAGE_QUERY, UPDATE_USER_INFO_QUERY, USERS_CHECK_EXISTING_EMAIL_WITH_ID_QUERY, LOGOUT_USER_QUERY } = require("../helper-files/db-query");
+const { USERS_CHECK_EXISTING_EMAIL_QUERY, USERS_INSERT_QUERY, FETCH_ALL_USERS_QUERY, INSERT_USER_MESSAGE_QUERY, FETCH_USER_QUERY, FETCH_USER_MESSAGE_QUERY, UPDATE_USER_INFO_QUERY, USERS_CHECK_EXISTING_EMAIL_WITH_ID_QUERY, UPDATE_USER_LOGIN_QUERY } = require("../helper-files/db-query");
 
 const SignUpController = async (req, res) => {
     const { email, password, fullname } = req.body;
@@ -35,13 +35,12 @@ const SignUpController = async (req, res) => {
             return api(res, "Account Created Successfully", data);
         }).catch((err) => {
             console.log(err);
-
             return api(res, "Internal server error", [], 500);
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error", status: "error" });
+        console.log(error);
+        return api(res, "Internal server error", [], 500);
     }
 }
 
@@ -60,6 +59,8 @@ const SignInController = async (req, res) => {
         if (!isMatch) {
             return api(res, "Invalid credentials", [], 401);
         }
+        await db.query(UPDATE_USER_LOGIN_QUERY, [true, checkUser.rows[0].id]);
+
         data["userData"] = checkUser.rows[0];
 
         data["token"] = jwt.sign(
@@ -73,7 +74,7 @@ const SignInController = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal server error", status: "error" });
+        return api(res, "Internal server error", [], 500);
     }
 }
 
@@ -82,19 +83,19 @@ const LogoutController = async (req, res) => {
         const { userID } = req.body;
 
         if (!userID) {
-            return res.status(400).json({ message: "UserID is required", status: "error" });
+            return api(res, "UserID is required", [], 400);
         }
-        const logoutUser = await db.query(LOGOUT_USER_QUERY, [userID]);
+        const logoutUser = await db.query(UPDATE_USER_LOGIN_QUERY, [false, userID]);
 
         if (logoutUser.rowCount === 0) {
-            return res.status(404).json({ message: "No Users Found", status: "error" });
+            return api(res, "No Users Found", [], 404);
         }
 
         return api(res, "User Logged Out");
 
     } catch (error) {
         console.error("Error fetching users:", error);
-        return res.status(500).json({ message: "Internal server error", status: "error" });
+        return api(res, "Internal server error", [], 500);
     }
 }
 
@@ -103,12 +104,12 @@ const FetchAllUsers = async (req, res) => {
         const { userID } = req.query;
 
         if (!userID) {
-            return res.status(400).json({ message: "UserID is required", status: "error" });
+            return api(res, "UserID is required", [], 400);
         }
         const getAllUsers = await db.query(FETCH_ALL_USERS_QUERY, [userID]);
 
         if (getAllUsers.rowCount === 0) {
-            return res.status(404).json({ message: "No Users Found", status: "error" });
+            return api(res, "No Users Found", [], 404);
         }
 
         const data = { users: getAllUsers.rows };
@@ -117,7 +118,7 @@ const FetchAllUsers = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching users:", error);
-        return res.status(500).json({ message: "Internal server error", status: "error" });
+        return api(res, "Internal server error", [], 500);
     }
 };
 
@@ -140,8 +141,8 @@ const FetchUserMessage = async (req, res) => {
     try {
         const { senderId, receiverId } = req.query;
 
-        if (!senderId || !receiverId) {
-            return res.status(400).json({ message: "UserID is required", status: "error" });
+        if (!senderId && !receiverId) {
+            return api(res, "User IDs are required", [], 400);
         }
         const getUserMessages = await db.query(FETCH_USER_MESSAGE_QUERY, [senderId, receiverId]);
 
@@ -151,7 +152,7 @@ const FetchUserMessage = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching messages:", error);
-        return res.status(500).json({ message: "Internal server error", status: "error" });
+        return api(res, "Internal server error", [], 500);
     }
 }
 
@@ -179,8 +180,7 @@ const UpdateUserInfo = async (req, res) => {
 
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error", status: "error" });
+        return api(res, "Internal server error", [], 500);
     }
 }
 
