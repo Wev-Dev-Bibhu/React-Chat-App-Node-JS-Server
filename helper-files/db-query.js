@@ -14,7 +14,7 @@ const FETCH_USER_MESSAGE_QUERY = "SELECT id, message_text as message, sender_id 
 const USERS_CHECK_EXISTING_EMAIL_WITH_ID_QUERY = "SELECT * FROM public.users WHERE email = $1 AND id != $2" + AND_DELETED_COLUMN_CHECK;
 const UPDATE_USER_INFO_QUERY = "UPDATE public.users SET fullname =$1, email= $2, avatar = $3, about= $4, updated_at = NOW() WHERE id = $5 " + RETURNING_ALL;
 
-const LOGOUT_USER_QUERY = "UPDATE public.users SET login = false, updated_at = NOW() WHERE id = $1 " + RETURNING_ALL;
+const UPDATE_USER_LOGIN_QUERY = "UPDATE public.users SET login = $1, updated_at = NOW() WHERE id = $2 " + RETURNING_ALL;
 
 
 
@@ -27,5 +27,5 @@ module.exports = {
     FETCH_USER_MESSAGE_QUERY,
     USERS_CHECK_EXISTING_EMAIL_WITH_ID_QUERY,
     UPDATE_USER_INFO_QUERY,
-    LOGOUT_USER_QUERY
+    UPDATE_USER_LOGIN_QUERY
 };
